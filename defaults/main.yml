@@ -1,0 +1,63 @@
+---
+# The OS target for the binary.
+helm_os: "linux"
+
+# The version of the binary can be a specific version such as: "3.9.0".
+helm_version: "latest"
+
+# The owner of the installed binary.
+helm_owner: "root"
+
+# The group of the installed binary.
+helm_group: "root"
+
+# The permissions of the installed binary.
+helm_mode: "0755"
+
+# The permissions of the binary directory.
+helm_bin_dir_mode: "0755"
+
+# The directory to install the binary in.
+helm_bin_dir: "/usr/local/share/helm"
+
+# The full path to the binary.
+helm_bin_path: "{{ helm_bin_dir }}/helm"
+
+# The symlink path created to the binary.
+helm_link_path: "/usr/local/bin/helm"
+
+# The directory the file will be downloaded in.
+helm_download_dir: "/tmp"
+
+# The full path to the downloaded file.
+helm_download_path: "/tmp/helm.tar.gz"
+
+# The URL to the repository.
+helm_repo_url: "https://get.helm.sh"
+
+# The URL to the file.
+helm_file_url: "{{ helm_repo_url }}/helm-v{{ helm_version }}-{{ helm_os }}-{{ helm_architecture }}.tar.gz"
+
+# The URL to fetch the latest version from.
+helm_version_url: "https://api.github.com/repos/helm/helm/releases/latest"
+
+# The URL to the checksum of the file.
+helm_checksum_url: "{{ helm_file_url }}.sha256sum"
+
+# The architecture target for the binary.
+helm_architecture: "{{ helm_architecture_map[ansible_architecture] }}"
+
+# The architecture map used to set the correct name according to the
+# repository file names.
+helm_architecture_map:
+  {
+    "aarch": "arm64",
+    "aarch64": "arm64",
+    "amd64": "amd64",
+    "arm64": "arm64",
+    "armhf": "armhf",
+    "armv7l": "armhf",
+    "ppc64le": "ppc64le",
+    "s390x": "s390x",
+    "x86_64": "amd64",
+  }

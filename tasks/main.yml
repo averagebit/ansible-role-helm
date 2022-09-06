@@ -1,0 +1,78 @@
+---
+- name: Check if binary exists
+  ansible.builtin.stat:
+    path: "{{ helm_bin_path }}"
+  register: helm_bin
+
+- name: Get current version
+  ansible.builtin.command: "{{ helm_bin_path }} version"
+  failed_when: false
+  changed_when: false
+  register: helm_current_version
+
+- name: Get latest version
+  block:
+    - name: Get latest version
+      ansible.builtin.uri:
+        url: "{{ helm_version_url }}"
+        return_content: true
+        body_format: json
+      register: helm_latest_version
+
+    - name: Set latest version fact
+      ansible.builtin.set_fact:
+        helm_version: "{{ helm_latest_version.json.tag_name | regex_replace('^v', '') }}"
+  when: helm_version == "latest"
+
+- name: Download file
+  ansible.builtin.get_url:
+    url: "{{ helm_file_url }}"
+    dest: "{{ helm_download_path }}"
+    checksum: "sha256:{{ helm_checksum_url }}"
+    force: true
+  register: helm_download
+  when: >
+    not helm_bin.stat.exists
+    or helm_version not in helm_current_version.stdout
+
+- name: Install binary
+  block:
+    - name: Ensure bin directory exists
+      ansible.builtin.file:
+        path: "{{ helm_bin_dir }}"
+        state: directory
+        owner: "{{ helm_owner }}"
+        group: "{{ helm_group }}"
+        mode: "{{ helm_bin_dir_mode }}"
+
+    - name: Remove old version
+      ansible.builtin.file:
+        path: "{{ helm_bin_path }}"
+        state: absent
+
+    - name: Extract archive
+      ansible.builtin.unarchive:
+        src: "{{ helm_download_path }}"
+        dest: "{{ helm_bin_dir }}"
+        creates: "{{ helm_bin_path }}"
+        owner: "{{ helm_owner }}"
+        group: "{{ helm_group }}"
+        remote_src: true
+        extra_opts:
+          - "--strip-components=1"
+
+    - name: Remove archive
+      ansible.builtin.file:
+        path: "{{ helm_download_path }}"
+        state: absent
+
+    - name: Create symlink
+      ansible.builtin.file:
+        src: "{{ helm_bin_path }}"
+        dest: "{{ helm_link_path }}"
+        owner: "{{ helm_owner }}"
+        group: "{{ helm_group }}"
+        mode: "{{ helm_mode }}"
+        force: true
+        state: link
+  when: helm_download is changed
